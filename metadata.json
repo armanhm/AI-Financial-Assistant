@@ -1,0 +1,5 @@
+{
+  "name": "FinSim AI",
+  "description": "A comprehensive financial dashboard and decision simulator powered by Gemini AI. Track expenses, manage assets, and simulate financial scenarios like taking loans or changing credit cards.",
+  "requestFramePermissions": []
+}
