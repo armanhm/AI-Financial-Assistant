@@ -174,7 +174,7 @@ const App: React.FC = () => {
             </div>
             <span>API Connected</span>
           </div>
-          <p className="text-xs text-slate-600">v1.4.0-inv</p>
+          <p className="text-xs text-slate-600">v1.4.1-layout</p>
         </div>
       </aside>
 
@@ -283,7 +283,7 @@ const App: React.FC = () => {
         {activeView === 'dashboard' && (
         <div className="grid grid-cols-12 gap-6 animate-fadeIn">
           
-          {/* Top Metrics Cards */}
+          {/* Top Metrics Cards - Full Row */}
           <div className="col-span-12 grid grid-cols-4 gap-6">
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-2">
@@ -320,139 +320,138 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* New Row: Risk & Coach Widgets */}
-          <div className="col-span-8 grid grid-cols-2 gap-6">
-              <div className="col-span-1 h-full">
-                  <RiskAnalysis state={activeState} />
+          {/* Left Column (Main) */}
+          <div className="col-span-8 space-y-6">
+              
+              {/* Row: Risk & Coach Widgets */}
+              <div className="grid grid-cols-2 gap-6">
+                  <div className="col-span-1 h-full">
+                      <RiskAnalysis state={activeState} />
+                  </div>
+                  <div className="col-span-1 h-full">
+                      <CreditCoach state={activeState} />
+                  </div>
               </div>
-              <div className="col-span-1 h-full">
-                  <CreditCoach state={activeState} />
-              </div>
-          </div>
-          
-          <div className="col-span-4"></div>
 
-          {/* Main Chart Area & Simulation Logic */}
-          <div className="col-span-8 space-y-6 -mt-6"> 
-            {/* Projection Chart */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h3 className="font-bold text-lg text-slate-800">Wealth Projection (12 Months)</h3>
-                    <p className="text-xs text-slate-500">Includes Cash, Investments, and Debt Amortization</p>
-                </div>
-                <div className="flex gap-3 text-sm">
-                   <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded border border-emerald-100">
-                     <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div> 
-                     <span className="text-emerald-900 font-medium">Current</span>
-                   </span>
-                   {isSimulating && (
-                    <span className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 rounded border border-indigo-100">
-                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div> 
-                      <span className="text-indigo-900 font-medium">Simulated</span>
-                    </span>
-                   )}
-                </div>
-              </div>
-              <NetWorthChart current={currentState} simulated={simState} />
-            </div>
-
-            {/* Simulation Controls */}
-            <div className={`transition-all duration-300 ${isSimulating ? 'ring-4 ring-indigo-500/20 rounded-xl' : ''}`}>
-               <SimulationControl 
-                 baseState={currentState}
-                 simState={simState || currentState} 
-                 setSimState={setSimState}
-                 isActive={isSimulating}
-                 onToggle={toggleSimulation}
-               />
-            </div>
-            
-            {/* Transactions List */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                 <h3 className="font-bold text-lg text-slate-800">Recent Transactions</h3>
-                 <button className="text-sm text-indigo-600 font-medium hover:underline hover:text-indigo-700">View All</button>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left text-sm text-slate-600">
-                   <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
-                     <tr>
-                       <th className="px-6 py-3">Date</th>
-                       <th className="px-6 py-3">Description</th>
-                       <th className="px-6 py-3">Category</th>
-                       <th className="px-6 py-3 text-right">Amount</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-100">
-                     {activeState.transactions.slice(0, 8).map((t) => (
-                       <tr key={t.id} className="hover:bg-slate-50 transition">
-                         <td className="px-6 py-3 whitespace-nowrap text-slate-400 font-mono text-xs">{t.date}</td>
-                         <td className="px-6 py-3 font-medium text-slate-800">{t.description}</td>
-                         <td className="px-6 py-3"><span className="px-2 py-1 bg-slate-100 rounded-full text-xs font-medium text-slate-600 border border-slate-200">{t.category}</span></td>
-                         <td className={`px-6 py-3 text-right font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-800'}`}>
-                           {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
-            </div>
-
-          </div>
-
-          {/* Right Column: AI & Spending Breakdown */}
-          <div className="col-span-4 space-y-6 -mt-[176px]">
-            
-            {/* AI Advisor - Sticky-ish */}
-            <div className="h-[520px]">
-               <AIAssistant current={currentState} simulated={simState} />
-            </div>
-
-            {/* Spending Chart */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-               <h3 className="font-bold text-lg text-slate-800 mb-4">Spending by Category</h3>
-               <ExpenseBreakdown transactions={activeState.transactions} />
-            </div>
-
-            {/* Sim State Differences Details */}
-            {isSimulating && (
-              <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border border-indigo-100 shadow-sm animate-fadeIn">
-                <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
-                    <Icons.Chart className="w-4 h-4 text-indigo-500" /> Simulation Impact (1 Year)
-                </h3>
-                <div className="space-y-4">
-                   <div className="flex justify-between text-sm items-center">
-                      <span className="text-slate-600">Projected Net Worth</span>
-                      <span className="font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded text-base">
-                        ${(generateProjectionData(simState!, 12).pop()?.actualNetWorth || 0).toLocaleString(undefined, {maximumFractionDigits:0})}
+              {/* Row: Charts */}
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                      <h3 className="font-bold text-lg text-slate-800">Wealth Projection (12 Months)</h3>
+                      <p className="text-xs text-slate-500">Includes Cash, Investments, and Debt Amortization</p>
+                  </div>
+                  <div className="flex gap-3 text-sm">
+                     <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded border border-emerald-100">
+                       <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div> 
+                       <span className="text-emerald-900 font-medium">Current</span>
+                     </span>
+                     {isSimulating && (
+                      <span className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 rounded border border-indigo-100">
+                        <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div> 
+                        <span className="text-indigo-900 font-medium">Simulated</span>
                       </span>
-                   </div>
-                   <div className="flex justify-between text-sm items-center">
-                      <span className="text-slate-600">Investments Contribution</span>
-                      <span className="font-semibold text-emerald-600">+${(simState!.investments.reduce((a,i) => a+i.monthlyContribution * 12, 0)).toLocaleString()}</span>
-                   </div>
-                   
-                   <div className="flex justify-between text-sm items-center">
-                      <span className="text-slate-600">New Loan Debt</span>
-                      <span className="font-semibold text-rose-600">+${(simState!.loans.reduce((a,l) => a+l.principal, 0) - currentState.loans.reduce((a,l) => a+l.principal, 0)).toLocaleString()}</span>
-                   </div>
-
-                   <div className="pt-3 border-t border-indigo-100 mt-2">
-                      <button 
-                        onClick={() => {
-                          setCurrentState(simState!);
-                          setSimState(null);
-                        }}
-                        className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all"
-                      >
-                        Apply Changes to Profile
-                      </button>
-                   </div>
+                     )}
+                  </div>
                 </div>
+                <NetWorthChart current={currentState} simulated={simState} />
               </div>
-            )}
+
+              {/* Simulation Controls */}
+              <div className={`transition-all duration-300 ${isSimulating ? 'ring-4 ring-indigo-500/20 rounded-xl' : ''}`}>
+                 <SimulationControl 
+                   baseState={currentState}
+                   simState={simState || currentState} 
+                   setSimState={setSimState}
+                   isActive={isSimulating}
+                   onToggle={toggleSimulation}
+                 />
+              </div>
+
+              {/* Transactions List */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                   <h3 className="font-bold text-lg text-slate-800">Recent Transactions</h3>
+                   <button className="text-sm text-indigo-600 font-medium hover:underline hover:text-indigo-700">View All</button>
+                 </div>
+                 <div className="overflow-x-auto">
+                   <table className="w-full text-left text-sm text-slate-600">
+                     <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
+                       <tr>
+                         <th className="px-6 py-3">Date</th>
+                         <th className="px-6 py-3">Description</th>
+                         <th className="px-6 py-3">Category</th>
+                         <th className="px-6 py-3 text-right">Amount</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-100">
+                       {activeState.transactions.slice(0, 8).map((t) => (
+                         <tr key={t.id} className="hover:bg-slate-50 transition">
+                           <td className="px-6 py-3 whitespace-nowrap text-slate-400 font-mono text-xs">{t.date}</td>
+                           <td className="px-6 py-3 font-medium text-slate-800">{t.description}</td>
+                           <td className="px-6 py-3"><span className="px-2 py-1 bg-slate-100 rounded-full text-xs font-medium text-slate-600 border border-slate-200">{t.category}</span></td>
+                           <td className={`px-6 py-3 text-right font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-800'}`}>
+                             {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                           </td>
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
+                 </div>
+              </div>
+
+          </div>
+
+          {/* Right Column (Sidebar) */}
+          <div className="col-span-4 space-y-6">
+             
+              {/* AI Advisor */}
+              <div className="h-[520px]">
+                 <AIAssistant current={currentState} simulated={simState} />
+              </div>
+
+              {/* Spending Chart */}
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                 <h3 className="font-bold text-lg text-slate-800 mb-4">Spending by Category</h3>
+                 <ExpenseBreakdown transactions={activeState.transactions} />
+              </div>
+
+              {/* Sim State Differences Details */}
+              {isSimulating && (
+                <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border border-indigo-100 shadow-sm animate-fadeIn">
+                  <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                      <Icons.Chart className="w-4 h-4 text-indigo-500" /> Simulation Impact (1 Year)
+                  </h3>
+                  <div className="space-y-4">
+                     <div className="flex justify-between text-sm items-center">
+                        <span className="text-slate-600">Projected Net Worth</span>
+                        <span className="font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded text-base">
+                          ${(generateProjectionData(simState!, 12).pop()?.actualNetWorth || 0).toLocaleString(undefined, {maximumFractionDigits:0})}
+                        </span>
+                     </div>
+                     <div className="flex justify-between text-sm items-center">
+                        <span className="text-slate-600">Investments Contribution</span>
+                        <span className="font-semibold text-emerald-600">+${(simState!.investments.reduce((a,i) => a+i.monthlyContribution * 12, 0)).toLocaleString()}</span>
+                     </div>
+                     
+                     <div className="flex justify-between text-sm items-center">
+                        <span className="text-slate-600">New Loan Debt</span>
+                        <span className="font-semibold text-rose-600">+${(simState!.loans.reduce((a,l) => a+l.principal, 0) - currentState.loans.reduce((a,l) => a+l.principal, 0)).toLocaleString()}</span>
+                     </div>
+
+                     <div className="pt-3 border-t border-indigo-100 mt-2">
+                        <button 
+                          onClick={() => {
+                            setCurrentState(simState!);
+                            setSimState(null);
+                          }}
+                          className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all"
+                        >
+                          Apply Changes to Profile
+                        </button>
+                     </div>
+                  </div>
+                </div>
+              )}
 
           </div>
 

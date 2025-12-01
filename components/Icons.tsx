@@ -31,7 +31,11 @@ import {
   Newspaper,
   ExternalLink,
   Activity,
-  BarChart3
+  BarChart3,
+  MessageSquare,
+  Send,
+  Bot,
+  User
 } from 'lucide-react';
 
 export const Icons = {
@@ -65,5 +69,9 @@ export const Icons = {
   Newspaper: Newspaper,
   ExternalLink: ExternalLink,
   Activity: Activity,
-  BarChart: BarChart3
+  BarChart: BarChart3,
+  MessageSquare: MessageSquare,
+  Send: Send,
+  Bot: Bot,
+  User: User
 };

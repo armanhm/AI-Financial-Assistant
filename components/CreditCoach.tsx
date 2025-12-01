@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FinancialState } from '../types';
 import { Icons } from './Icons';
@@ -65,6 +66,15 @@ const CreditCoach: React.FC<CreditCoachProps> = ({ state }) => {
     setLoading(false);
   };
 
+  // SVG Configuration
+  // Size: 128px (w-32)
+  // Center: 64, 64
+  // Radius: 56 (leaving space for stroke)
+  // Circumference: 2 * pi * 56 ≈ 351.86
+  const radius = 56;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (circumference * ((score - 300) / 550));
+
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
       <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
@@ -72,39 +82,39 @@ const CreditCoach: React.FC<CreditCoachProps> = ({ state }) => {
       </h3>
 
       <div className="flex items-center justify-between mb-6">
-        <div className="relative w-24 h-24 flex items-center justify-center">
+        <div className="relative w-32 h-32 flex-shrink-0">
             {/* Simple Gauge Visualization */}
-            <svg className="w-full h-full transform -rotate-90">
-                <circle cx="48" cy="48" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+                <circle cx="64" cy="64" r={radius} stroke="#f1f5f9" strokeWidth="10" fill="transparent" />
                 <circle 
-                    cx="48" cy="48" r="40" 
+                    cx="64" cy="64" r={radius} 
                     stroke="currentColor" 
-                    strokeWidth="8" 
+                    strokeWidth="10" 
                     fill="transparent" 
-                    strokeDasharray={251.2}
-                    strokeDashoffset={251.2 - (251.2 * ((score - 300) / 550))}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
                     className={`transition-all duration-1000 ${getScoreColor(score)}`}
                     strokeLinecap="round"
                 />
             </svg>
-            <div className="absolute flex flex-col items-center">
-                <span className={`text-2xl font-bold ${getScoreColor(score)}`}>{score}</span>
-                <span className="text-[10px] uppercase text-slate-400 font-bold">Est. Score</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-3xl font-bold ${getScoreColor(score)}`}>{score}</span>
+                <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wide mt-1">Est. Score</span>
             </div>
         </div>
-        <div className="flex-1 pl-4">
-             <div className="space-y-2">
-                 <div className="flex justify-between text-xs text-slate-500 border-b border-slate-100 pb-1">
+        <div className="flex-1 pl-6">
+             <div className="space-y-3">
+                 <div className="flex justify-between text-xs text-slate-500 border-b border-slate-100 pb-2">
                     <span>Credit Age</span>
                     <span className="font-medium text-slate-700">~4.2 Years</span>
                  </div>
-                 <div className="flex justify-between text-xs text-slate-500 border-b border-slate-100 pb-1">
-                    <span>Total Accounts</span>
-                    <span className="font-medium text-slate-700">{state.loans.length + state.creditCards.length}</span>
+                 <div className="flex justify-between text-xs text-slate-500 border-b border-slate-100 pb-2">
+                    <span>Accounts</span>
+                    <span className="font-medium text-slate-700">{state.loans.length + state.creditCards.length} Total</span>
                  </div>
                  <div className="flex justify-between text-xs text-slate-500">
                     <span>Inquiries</span>
-                    <span className="font-medium text-emerald-600">Low</span>
+                    <span className="font-medium text-emerald-600">Very Low</span>
                  </div>
              </div>
         </div>

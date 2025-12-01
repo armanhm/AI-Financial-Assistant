@@ -94,3 +94,9 @@ export interface MonthlyData {
   simulatedNetWorth?: number;
   investmentValue?: number;
 }
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}

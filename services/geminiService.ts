@@ -228,3 +228,41 @@ export const getTrendingFinancialNews = async (): Promise<MarketPulseData> => {
     };
   }
 };
+
+// Create a Chat Session with Context
+export const createFinancialChat = (current: FinancialState, simulated: FinancialState | null) => {
+  if (!apiKey) return null;
+
+  const stateToAnalyze = simulated || current;
+  const mode = simulated ? "SIMULATION MODE" : "REAL DATA MODE";
+  
+  const context = `
+    ${mode}
+    Cash: $${stateToAnalyze.cashBalance}
+    Monthly Income: $${stateToAnalyze.monthlyIncome}
+    Debt: $${stateToAnalyze.loans.reduce((a,l) => a+l.remainingBalance, 0)}
+    Investments: $${stateToAnalyze.investments.reduce((a,i) => a+i.balance, 0)}
+    
+    Recent Transactions: ${JSON.stringify(stateToAnalyze.transactions.slice(0, 5))}
+    Loans: ${JSON.stringify(stateToAnalyze.loans)}
+    Credit Cards: ${JSON.stringify(stateToAnalyze.creditCards)}
+  `;
+
+  const systemInstruction = `You are FinSim AI. You have access to the user's financial dashboard data.
+  CONTEXT:
+  ${context}
+  
+  Rules:
+  1. Answer questions specifically using the numbers provided.
+  2. If the user is in SIMULATION MODE, remind them that these are projected numbers.
+  3. Keep answers concise (max 3 sentences) unless asked for a detailed breakdown.
+  4. Be helpful, encouraging, and financially prudent.
+  `;
+
+  return ai.chats.create({
+    model: "gemini-2.5-flash",
+    config: {
+      systemInstruction
+    }
+  });
+};

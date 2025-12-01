@@ -4,12 +4,14 @@ import { InvestmentSuggestion, Investment, MarketPulseData } from '../types';
 import { getInvestmentSuggestions, getTrendingFinancialNews } from '../services/geminiService';
 import { Icons } from './Icons';
 import { InvestmentSimulatorModal } from './InvestmentSimulatorModal';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface InvestmentSuggestionsProps {
   onAddAsset: (suggestion: InvestmentSuggestion) => void;
   currentInvestments?: Investment[]; 
 }
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 Minutes
 
 const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsset, currentInvestments = [] }) => {
   const [risk, setRisk] = useState<string>('Medium');
@@ -22,23 +24,78 @@ const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsse
   // Market Pulse State
   const [marketData, setMarketData] = useState<MarketPulseData | null>(null);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<number>(0);
+
+  // Helper: Get from Cache
+  const getCachedData = (key: string) => {
+    try {
+      const cached = localStorage.getItem(key);
+      if (!cached) return null;
+      
+      const { timestamp, data } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        return { timestamp, data };
+      }
+      return null; // Expired
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Helper: Save to Cache
+  const setCachedData = (key: string, data: any) => {
+    try {
+      const timestamp = Date.now();
+      localStorage.setItem(key, JSON.stringify({ timestamp, data }));
+      return timestamp;
+    } catch (e) {
+      console.warn("Cache save failed", e);
+      return Date.now();
+    }
+  };
+
+  const fetchNews = async (forceRefresh = false) => {
+    setLoadingNews(true);
+    
+    if (!forceRefresh) {
+        const cached = getCachedData('finsim_market_pulse');
+        if (cached) {
+            setMarketData(cached.data);
+            setLastUpdated(cached.timestamp);
+            setLoadingNews(false);
+            return;
+        }
+    }
+
+    const data = await getTrendingFinancialNews();
+    setMarketData(data);
+    const ts = setCachedData('finsim_market_pulse', data);
+    setLastUpdated(ts);
+    setLoadingNews(false);
+  };
 
   // Fetch News on Mount
   useEffect(() => {
-    const fetchNews = async () => {
-      setLoadingNews(true);
-      const data = await getTrendingFinancialNews();
-      setMarketData(data);
-      setLoadingNews(false);
-    };
     fetchNews();
   }, []);
 
   const fetchSuggestions = async () => {
     setLoading(true);
     setSuggestions([]);
+
+    const cacheKey = `finsim_suggestions_${risk}_${term}`;
+    const cached = getCachedData(cacheKey);
+
+    if (cached) {
+        setSuggestions(cached.data);
+        setLoading(false);
+        setGenerated(true);
+        return;
+    }
+
     const results = await getInvestmentSuggestions(risk, term);
     setSuggestions(results);
+    setCachedData(cacheKey, results);
     setLoading(false);
     setGenerated(true);
   };
@@ -98,25 +155,18 @@ const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsse
     );
   };
 
-  const renderSectorChart = (sectors: {name: string, sentiment: number}[]) => {
-     return (
-        <div className="h-[140px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sectors} layout="vertical" margin={{top:5, right:20, left:20, bottom:5}}>
-                    <XAxis type="number" domain={[0, 10]} hide />
-                    <Tooltip 
-                        contentStyle={{borderRadius: '6px', fontSize: '12px'}} 
-                        cursor={{fill: 'transparent'}}
-                    />
-                    <Bar dataKey="sentiment" radius={[0, 4, 4, 0]}>
-                        {sectors.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.sentiment > 7 ? '#10b981' : entry.sentiment > 4 ? '#6366f1' : '#f43f5e'} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-     );
+  // Helper to determine mock Volatility based on sentiment score intensity
+  const getVolatility = (score: number) => {
+      if (score >= 8 || score <= 2) return { label: 'High', color: 'text-amber-600' };
+      if (score >= 4 && score <= 6) return { label: 'Low', color: 'text-emerald-600' };
+      return { label: 'Med', color: 'text-indigo-600' };
+  };
+
+  const getTimeAgo = () => {
+     if (!lastUpdated) return '';
+     const diff = Math.floor((Date.now() - lastUpdated) / 60000);
+     if (diff < 1) return 'Just now';
+     return `${diff}m ago`;
   };
 
   return (
@@ -144,10 +194,19 @@ const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsse
                 <h3 className="font-bold text-lg">Global Market Pulse</h3>
             </div>
             <div className="flex items-center gap-3">
+                 {lastUpdated > 0 && (
+                     <span className="text-xs text-slate-400 mr-2 flex items-center gap-1">
+                        <Icons.Reset className="w-3 h-3" /> Updated: {getTimeAgo()}
+                     </span>
+                 )}
+                 <button 
+                    onClick={() => fetchNews(true)}
+                    disabled={loadingNews}
+                    className="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 px-2 py-1 rounded border border-slate-700 transition-colors"
+                 >
+                    {loadingNews ? 'Refreshing...' : 'Refresh'}
+                 </button>
                  <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30">Live Data</span>
-                 <div className="flex items-center gap-1 text-xs text-slate-400">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Google Search
-                 </div>
             </div>
         </div>
 
@@ -203,12 +262,57 @@ const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsse
                     </div>
                 </div>
 
-                {/* 1.3 Sector Heatmap (4 Cols) */}
-                <div className="col-span-4 pl-2">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sector Trend (Sentiment)</h4>
-                    {renderSectorChart(marketData.sectors)}
-                    <div className="flex justify-between px-2 text-[10px] text-slate-400 font-mono mt-1">
-                        {marketData.sectors.map(s => <span key={s.name}>{s.name}</span>)}
+                {/* 1.3 Sector Performance (4 Cols) - REDESIGNED */}
+                <div className="col-span-4 pl-2 flex flex-col h-full">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                         <Icons.BarChart className="w-4 h-4" /> Sector Performance
+                    </h4>
+                    <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar max-h-[220px]">
+                        {marketData.sectors.map((sector, i) => {
+                            const volatility = getVolatility(sector.sentiment);
+                            const volume = ['High', 'Med', 'Low'][sector.name.length % 3]; // Deterministic mock
+                            
+                            return (
+                                <div key={i} className="group relative bg-slate-50 rounded-xl p-3 border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all">
+                                    {/* Header */}
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-bold text-sm text-slate-700 truncate max-w-[120px]" title={sector.name}>{sector.name}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                            sector.sentiment >= 7 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                            sector.sentiment <= 4 ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                            'bg-amber-50 text-amber-600 border-amber-100'
+                                        }`}>
+                                            {sector.sentiment >= 7 ? 'Bullish' : sector.sentiment <= 4 ? 'Bearish' : 'Neutral'}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Progress Bar */}
+                                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-2.5">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-1000 ${
+                                                 sector.sentiment >= 7 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' :
+                                                 sector.sentiment <= 4 ? 'bg-gradient-to-r from-rose-400 to-rose-600' :
+                                                 'bg-gradient-to-r from-amber-400 to-amber-600'
+                                            }`}
+                                            style={{ width: `${sector.sentiment * 10}%` }}
+                                        />
+                                    </div>
+                                    
+                                    {/* Footer / Stats */}
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <div className="flex gap-3">
+                                            <span className="text-slate-400 flex items-center gap-1">
+                                                Vol: <span className={`font-semibold ${volatility.color}`}>{volatility.label}</span>
+                                            </span>
+                                            <span className="text-slate-400 flex items-center gap-1">
+                                                Volm: <span className="font-semibold text-slate-600">{volume}</span>
+                                            </span>
+                                        </div>
+                                        <span className="font-mono font-bold text-slate-600">{sector.sentiment}/10</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -219,10 +323,10 @@ const InvestmentSuggestions: React.FC<InvestmentSuggestionsProps> = ({ onAddAsse
                     </h4>
                     <div className="grid grid-cols-3 gap-4">
                         {marketData.news.map((item, idx) => (
-                            <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100 hover:shadow-sm transition-shadow">
+                            <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100 hover:shadow-sm transition-shadow h-full">
                                 <span className="text-[10px] bg-white border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded mb-2 inline-block">Breaking</span>
-                                <h5 className="font-bold text-xs text-slate-800 mb-1 leading-snug line-clamp-2">{item.headline}</h5>
-                                <p className="text-[10px] text-slate-500 line-clamp-2">{item.summary}</p>
+                                <h5 className="font-bold text-xs text-slate-800 mb-1 leading-snug line-clamp-2" title={item.headline}>{item.headline}</h5>
+                                <p className="text-[10px] text-slate-500 line-clamp-2" title={item.summary}>{item.summary}</p>
                             </div>
                         ))}
                     </div>
